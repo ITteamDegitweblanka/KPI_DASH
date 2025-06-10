@@ -1,0 +1,55 @@
+import { Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { ApiError } from '../utils/api-error';
+import { prisma } from '../utils/prisma';
+import { PerformanceRating, Prisma, PerformanceReviewStatus } from '@prisma/client';
+import { UserRole } from '../types';
+
+// Define the AuthenticatedUser and AuthenticatedRequest interfaces
+interface AuthenticatedUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  teamId?: string | null;
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: AuthenticatedUser;
+}
+
+// Define the ReviewWithRelations type
+type ReviewWithRelations = Prisma.PerformanceReviewGetPayload<{
+  include: {
+    employee: {
+      select: {
+        id: true;
+        firstName: true;
+        lastName: true;
+        email: true;
+        avatarUrl: true;
+        title: true;
+      };
+    };
+    reviewer: {
+      select: {
+        id: true;
+        firstName: true;
+        lastName: true;
+        email: true;
+      };
+    };
+  };
+}>;
+
+// ... rest of your controller code ...
+
+// At the end of the file, export all the controller methods
+export {
+  getEmployeePerformance,
+  createPerformanceReview,
+  updatePerformanceReview,
+  deletePerformanceReview,
+  finalizePerformanceReview,
+  getTeamPerformance,
+  mapRatingToScore,
+};

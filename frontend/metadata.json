@@ -1,0 +1,7 @@
+
+{
+  "name": "Employee KPI Dashboard",
+  "description": "A web application for tracking and managing employee Key Performance Indicators (KPIs) across different teams, featuring a dashboard with performance charts, summary cards, and an employee data table.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

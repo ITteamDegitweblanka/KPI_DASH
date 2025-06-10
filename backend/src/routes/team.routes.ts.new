@@ -1,0 +1,35 @@
+import { Router } from 'express';
+import { body, param, query } from 'express-validator';
+import { authenticate, authorize } from '../middleware/auth.middleware';
+import * as teamController from '../controllers/team.controller';
+import { validateRequest } from '../middleware/error.middleware';
+import { UserRole } from '../types';
+
+const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticate);
+
+// ... (keep all the existing route handlers and swagger docs)
+
+// Update the authorize middleware calls to use UserRole enum
+router.post(
+  '/',
+  [
+    body('name').trim().notEmpty(),
+    body('description').optional().trim(),
+    body('branchId').isUUID(),
+    body('leaderId').optional().isUUID(),
+  ],
+  validateRequest,
+  authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  teamController.createTeam
+);
+
+// ... (keep all other route handlers)
+
+// Update all other authorize middleware calls in the same way
+authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN])
+
+// For team leader routes, use MANAGER instead of 'Team Leader'
+authorize([UserRole.ADMIN, UserRole.MANAGER])
