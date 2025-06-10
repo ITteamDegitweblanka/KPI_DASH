@@ -23,7 +23,7 @@ A comprehensive Key Performance Indicator (KPI) tracking and management system b
 ### Backend
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: MySQL with Prisma ORM
 - **Authentication**: JWT (JSON Web Tokens)
 - **API Documentation**: Swagger/OpenAPI
 
