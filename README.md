@@ -31,7 +31,7 @@ A comprehensive Key Performance Indicator (KPI) tracking and management system b
 
 - Node.js (v16 or later)
 - npm or yarn
-- PostgreSQL (v12 or later)
+- MySQL (v12 or later)
 - Git
 
 ## 🚀 Getting Started
