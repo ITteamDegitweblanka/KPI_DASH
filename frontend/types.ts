@@ -7,6 +7,8 @@ export interface Employee {
   department: string;
   team: string;
   title: string; // e.g. Sales Manager
+  isPerformerOfTheWeek?: boolean; // <-- Add this line
+  isStarOfTheMonth?: boolean;     // <-- Add this line
 }
 
 export interface EmployeePerformanceData {
@@ -15,9 +17,21 @@ export interface EmployeePerformanceData {
   targetAchievedPercentage: number; // Weekly achievement
   totalScore: number; // Weekly score
   isPerformerOfTheWeek: boolean;
+  isStarOfTheMonth?: boolean; // <-- Add this line for monthly star flag
   monthlyTargetValue?: number; // Monthly sales target value
   monthlyTargetAchievedPercentage?: number; // Percentage of monthly target achieved
   monthlyNetSales?: number; // Actual net sales for the month
+  // Add metrics for backend-calculated scores
+  metrics?: {
+    sales_score?: number;
+    cost_score?: number;
+    aov_score?: number;
+    total_score?: number;
+    [key: string]: any;
+  };
+  week?: string | number; // Added for week filtering
+  month?: number; // 1-12, for month filter
+  deadline?: string; // ISO date string for week calculations
 }
 
 export interface WeeklyChartDataPoint {
@@ -88,8 +102,10 @@ export interface EmployeeGoal {
   currentValue: number;
   unit: string; // e.g., "$", "projects", "tasks", "%"
   deadline: string; // YYYY-MM-DD
+  startDate?: string; // YYYY-MM-DD
   status: GoalStatus;
   priority: 'Low' | 'Medium' | 'High';
+  metrics?: any; // Added for dynamic goal metrics/achievements
 }
 
 export interface GoalTemplate {

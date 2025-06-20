@@ -27,6 +27,13 @@ export interface User {
   updatedAt?: string;
 }
 
+// Extend ApiResponse type to allow token and user for login
+export interface LoginApiResponse {
+  token: string;
+  user: User;
+  [key: string]: any;
+}
+
 export interface AuthResponseData {
   user: User;
   accessToken: string;
@@ -34,56 +41,52 @@ export interface AuthResponseData {
   expiresIn: number;
 }
 
-type AuthResponse = ApiResponse<AuthResponseData>;
-
 class AuthService {
-  public async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  public async login(credentials: LoginCredentials): Promise<ApiResponse<{ user: User; accessToken: string; refreshToken: string; expiresIn: number }>> {
     try {
       console.log('[AuthService] Attempting login with credentials:', {
         email: credentials.email,
         hasPassword: !!credentials.password
       });
       
-      const response = await apiService.post<AuthResponseData>(
+      const response = await apiService.post<any>(
         API_ENDPOINTS.AUTH.LOGIN,
         credentials
       );
       
       console.log('[AuthService] Login response:', response);
       
-      if (!response || !response.data) {
-        throw new Error('No response received from server');
-      }
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Authentication failed');
-      }
-      
-      const { accessToken, refreshToken, expiresIn, user } = response.data.data;
-      
-      if (!accessToken) {
-        throw new Error('Authentication failed: No access token received');
-      }
-      
-      // Store tokens in localStorage with expiration
-      this.setAuthTokens(accessToken, refreshToken, expiresIn);
-      
-      // Store user data in localStorage
-      if (user) {
-        localStorage.setItem('user', JSON.stringify(user));
-      }
-      
-      console.log('[AuthService] Login successful, tokens stored');
-      return {
-        success: true,
-        data: {
-          user,
-          accessToken,
-          refreshToken,
-          expiresIn
+      // Handle login response
+      if (response && response.data) {
+        // If response.data has a 'data' property, use it; otherwise, use response.data directly
+        const loginData = (response.data as any).data ? (response.data as any).data : response.data;
+        const { token, refreshToken, expiresIn, user } = loginData as LoginApiResponse & { refreshToken?: string; expiresIn?: number };
+        if (token && user) {
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
         }
+        return {
+          success: true,
+          data: {
+            user,
+            accessToken: token,
+            refreshToken: refreshToken || '',
+            expiresIn: expiresIn || 3600,
+          },
+          message: 'Login successful',
+        };
+      }
+      // fallback for unexpected response shape
+      return {
+        success: false,
+        data: {
+          user: {} as User,
+          accessToken: '',
+          refreshToken: '',
+          expiresIn: 0,
+        },
+        message: 'Unexpected login response',
       };
-      
     } catch (error: any) {
       console.error('[AuthService] Login failed:', {
         error: error.message,
@@ -98,15 +101,9 @@ class AuthService {
           headers: error.config?.headers,
         },
       });
-      
       this.clearAuthTokens();
-      
-      // Provide more specific error messages
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         const { status, data } = error.response;
-        
         if (status === 401) {
           throw new Error(data?.message || 'Invalid email or password');
         } else if (status === 403) {
@@ -117,11 +114,9 @@ class AuthService {
           throw new Error(data?.message || `Request failed with status ${status}`);
         }
       } else if (error.request) {
-        // The request was made but no response was received
         console.error('No response received:', error.request);
         throw new Error('No response from server. Please check your connection.');
       } else {
-        // Something happened in setting up the request that triggered an Error
         console.error('Request setup error:', error.message);
         throw new Error(`Request failed: ${error.message}`);
       }
@@ -164,61 +159,28 @@ class AuthService {
 
   public async getCurrentUser(): Promise<User | null> {
     const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    
-    if (!token || !refreshToken) {
+    if (!token) {
       this.clearAuthTokens();
       return null;
     }
-
-    // Check if token is expired but refresh token is still valid
     const expiresAt = localStorage.getItem('token_expires_at');
     if (expiresAt) {
       const expirationTime = new Date(expiresAt).getTime();
       const currentTime = new Date().getTime();
-      const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
-
-      if (currentTime + bufferTime > expirationTime) {
-        try {
-          // Try to refresh the token
-          const response = await apiService.post<AuthResponseData>(
-            API_ENDPOINTS.AUTH.REFRESH,
-            { refreshToken }
-          );
-
-          if (response?.data?.success && response.data.data) {
-            const { accessToken, refreshToken: newRefreshToken, expiresIn, user } = response.data.data;
-            
-            if (accessToken) {
-              this.setAuthTokens(accessToken, newRefreshToken, expiresIn);
-              localStorage.setItem('user', JSON.stringify(user));
-              return user;
-            } else {
-              this.clearAuthTokens();
-              return null;
-            }
-          } else {
-            this.clearAuthTokens();
-            return null;
-          }
-        } catch (error) {
-          console.error('Failed to refresh token:', error);
-          this.clearAuthTokens();
-          return null;
-        }
+      if (currentTime > expirationTime) {
+        this.clearAuthTokens();
+        return null;
       }
     }
-
     try {
-      const response = await apiService.get<{ user: User }>(API_ENDPOINTS.AUTH.ME);
-
-      if (response.data.success && response.data.data) {
-        return response.data.data.user;
-      }
-      
+      const response = await apiService.get(API_ENDPOINTS.AUTH.ME);
+      // Support both { user } and { success, data: { user } } response shapes
+      const data = response.data as any;
+      if (data.user) return data.user;
+      if (data.data && data.data.user) return data.data.user;
       return null;
     } catch (error) {
-      console.error('Error fetching current user:', error);
+      this.clearAuthTokens();
       return null;
     }
   }

@@ -1,7 +1,27 @@
-export const markNotificationAsReadService = async (notificationId: string, userId: string): Promise<boolean> => {
+import { Notification, NotificationType } from '../types/notification';
+import { apiService } from './api';
+
+export const fetchNotificationsService = async (userId: string): Promise<Notification[]> => {
+  const response = await apiService.get<Notification[]>(`/notifications/user/${userId}`);
+  return response.data?.data || response.data;
+};
+
+export const sendNotificationService = async (userId: string, type: NotificationType, message: string, title?: string, link?: string): Promise<boolean> => {
   try {
-    // In a real app, this would be an API call
-    console.log(`Marking notification ${notificationId} as read for user ${userId}`);
+    const payload: any = { userId, type, message };
+    if (title) payload.title = title;
+    if (link) payload.link = link;
+    await apiService.post('/notifications', payload);
+    return true;
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    return false;
+  }
+};
+
+export const markNotificationAsReadService = async (notificationId: string): Promise<boolean> => {
+  try {
+    await apiService.put(`/notifications/${notificationId}/read`);
     return true;
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -11,8 +31,7 @@ export const markNotificationAsReadService = async (notificationId: string, user
 
 export const markAllNotificationsAsReadService = async (userId: string): Promise<boolean> => {
   try {
-    // In a real app, this would be an API call
-    console.log(`Marking all notifications as read for user ${userId}`);
+    await apiService.put(`/notifications/user/${userId}/read-all`);
     return true;
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
@@ -20,10 +39,9 @@ export const markAllNotificationsAsReadService = async (userId: string): Promise
   }
 };
 
-export const clearNotificationService = async (notificationId: string, userId: string): Promise<boolean> => {
+export const clearNotificationService = async (notificationId: string): Promise<boolean> => {
   try {
-    // In a real app, this would be an API call
-    console.log(`Clearing notification ${notificationId} for user ${userId}`);
+    await apiService.delete(`/notifications/${notificationId}`);
     return true;
   } catch (error) {
     console.error('Error clearing notification:', error);
@@ -33,8 +51,7 @@ export const clearNotificationService = async (notificationId: string, userId: s
 
 export const clearAllNotificationsService = async (userId: string): Promise<boolean> => {
   try {
-    // In a real app, this would be an API call
-    console.log(`Clearing all notifications for user ${userId}`);
+    await apiService.delete(`/notifications/user/${userId}`);
     return true;
   } catch (error) {
     console.error('Error clearing all notifications:', error);

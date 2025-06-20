@@ -2,28 +2,31 @@ import { apiService } from './api';
 import { API_ENDPOINTS } from '../config/api';
 import type { User } from './authService';
 import type { UserProfile } from '../types/auth';
+import axios from 'axios';
 
 // Helper function to convert API User to UserProfile
 const mapUserToUserProfile = (user: User): UserProfile => {
+  const email = user?.email || '';
+  const displayName = user?.displayName || (email ? email.split('@')[0] : 'User');
   return {
-    id: user.id,
-    name: user.displayName || user.email.split('@')[0],
-    email: user.email,
-    role: user.role as UserProfile['role'], // Cast to the correct role type
-    displayName: user.displayName || user.email.split('@')[0],
-    title: user.title || '',
-    phoneNumber: user.phoneNumber || '',
-    avatarUrl: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email)}`,
-    team: user.team?.name || '',
-    department: '', // These fields might not be in the User type
-    position: user.title || '',
-    workEmail: user.email,
+    id: user?.id,
+    name: displayName,
+    email,
+    role: user?.role as UserProfile['role'],
+    displayName,
+    title: user?.title || '',
+    phoneNumber: user?.phoneNumber || '',
+    avatarUrl: user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`,
+    team: user?.team?.name || '',
+    department: '',
+    position: user?.title || '',
+    workEmail: email,
     dateOfBirth: '',
-    hireDate: user.createdAt || new Date().toISOString(),
+    hireDate: user?.createdAt || new Date().toISOString(),
     // Add any other required fields with default values
-    avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email)}`,
-    joinDate: user.createdAt || new Date().toISOString(),
-    lastActive: user.updatedAt || new Date().toISOString(),
+    avatar: user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`,
+    joinDate: user?.createdAt || new Date().toISOString(),
+    lastActive: user?.updatedAt || new Date().toISOString(),
     nationality: '',
     address: {},
     emergencyContacts: [],
@@ -166,6 +169,29 @@ class UserService {
       console.error('Error fetching user profile:', error);
       throw error;
     }
+  }
+  
+  public async uploadAvatar(userId: string, file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    // Debug: log FormData contents
+    for (let pair of formData.entries()) {
+      console.log('FormData:', pair[0], pair[1]);
+    }
+    // Direct axios call for file upload
+    const token = localStorage.getItem('token');
+    await axios.post(
+      `http://localhost:3001/api/users/${userId}/avatar`,
+      formData,
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined
+          // Do NOT set Content-Type
+        },
+        withCredentials: true
+      }
+    );
+    // No need to return avatarUrl, just resolve
   }
 }
 

@@ -1,5 +1,5 @@
 // Base URL for API requests - points to the API root of your backend server
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // API endpoints with paths relative to the base URL
 export const API_ENDPOINTS = {
@@ -32,8 +32,8 @@ export const apiConfig = {
   
   // Default headers for all requests
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'Content-Type': 'application/json', // Ensure JSON body is sent
     'X-Requested-With': 'XMLHttpRequest',
   },
   

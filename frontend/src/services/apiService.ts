@@ -1,328 +1,243 @@
 import { 
     EmployeePerformanceData, WeeklyChartDataPoint, OverallPerformanceDataItem, 
-    EmployeeGoal, Branch, AdminPanelUser, AdminPanelTeam, UserRole,
-    Notification, GoalStatus, Employee
+    EmployeeGoal, Branch, AdminPanelUser, AdminPanelTeam, UserRole
 } from '../../types'; // Updated path
-import type { UserProfile } from '../../types/auth';
+import { apiService } from './api';
 
 // TODO: Replace with your actual API base URL
 // const API_BASE_URL = 'https://your-api-service.com/api/v1'; // Kept for context, but calls are simulated
 
-// --- In-memory store for Notifications (Simulation) ---
-let activeNotifications: Notification[] = [];
-// --- End Notification Store ---
-
-// --- In-memory store for Employee Goals (Simulation) ---
-let activeGoals: EmployeeGoal[] = [
-    // {
-    //   id: 'goal_init_1',
-    //   assignedToEmployeeId: 'user_dynamic_001', // Matches the dynamic user for testing
-    //   setByUserId: 'admin_system_id',
-    //   title: 'Initial Sales Quota',
-    //   description: 'Meet the initial sales quota for the quarter.',
-    //   targetValue: 50000,
-    //   currentValue: 15000,
-    //   unit: '$',
-    //   deadline: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], // 30 days from now
-    //   status: 'In Progress',
-    //   priority: 'High',
-    // },
-    // {
-    //   id: 'goal_init_2',
-    //   assignedToEmployeeId: 'user_dynamic_001',
-    //   setByUserId: 'admin_system_id',
-    //   title: 'Client Onboarding Efficiency',
-    //   description: 'Successfully onboard 10 new clients this month.',
-    //   targetValue: 10,
-    //   currentValue: 3,
-    //   unit: 'clients',
-    //   deadline: new Date(new Date().setDate(new Date().getDate() + 20)).toISOString().split('T')[0], // 20 days from now
-    //   status: 'Not Started',
-    //   priority: 'Medium',
-    // }
-];
-// --- End Goals Store ---
-
-// --- In-memory store for All Users (for goal assignment selection) ---
-const MOCK_ALL_EMPLOYEES_FOR_GOALS: Pick<UserProfile, 'id' | 'displayName' | 'team' | 'role'>[] = [
-  { id: 'user_dynamic_001', displayName: 'Dynamic User (Admin)', team: 'Management', role: 'Admin' },
-  { id: 'user_staff_001', displayName: 'Alice Wonderland', team: 'Sales', role: 'Staff' },
-  { id: 'user_staff_002', displayName: 'Bob The Builder', team: 'Sales', role: 'Staff' },
-  { id: 'user_leader_001', displayName: 'Charlie Brown (Sales Leader)', team: 'Sales', role: 'Leader'},
-  { id: 'user_staff_003', displayName: 'Diana Prince', team: 'Ads', role: 'Staff' },
-  { id: 'user_subleader_001', displayName: 'Edward Scissorhands (Ads Sub-Leader)', team: 'Ads', role: 'Sub-Leader' },
-  { id: 'user_staff_004', displayName: 'Fiona Gallagher', team: 'Website Ads', role: 'Staff' },
-  { id: 'user_staff_005', displayName: 'George Jetson', team: 'Portfolio', role: 'Staff' },
-];
-// --- End All Users Store ---
-
-
+// Example: Fetch user profile from backend
 export const fetchUserProfile = async (): Promise<UserProfile> => {
-  console.log('Simulating fetching user profile...');
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Example: if you log in with a user who should be a leader to test team-specific goal assignment
-      const profile: UserProfile = {
-        id: 'user_dynamic_001', 
-        displayName: 'Dynamic User',
-        title: 'System Administrator', 
-        workEmail: 'dynamic.user@example.com',
-        phoneNumber: '+1-555-0000',
-        dateOfBirth: '1990-01-01',
-        nationality: 'Canadian',
-        address: '100 Dynamic Way, Ottawa, ON',
-        avatarUrl: 'https://picsum.photos/seed/dynamicuser/100/100',
-        role: 'Admin', 
-        team: 'Management', // Default team for Admin, can be overridden for specific test users
-        // Example for a Leader role to test team-specific goal assignment:
-        // role: 'Leader',
-        // team: 'Sales', 
-        emergencyContacts: [ { id: 'ec_dyn_1', name: 'Jane Doe', relationship: 'Partner', phone: '+1-555-0001'} ],
-        identityDocuments: [ {id: 'id_dyn_1', name: 'Passport', status: 'Verified', fileName: 'passport.pdf', lastUpdated: '2023-05-10'}],
-        accessibilityNeeds: 'None',
-      };
-      resolve(profile);
-    }, 300);
-  });
+  const response = await apiService.get<UserProfile>(`/users/me`);
+  return response.data?.data || response.data;
 };
 
-// --- Mock Employees for Performance Data ---
-const mockEmployees: Employee[] = [
-  { id: 'emp_001', name: 'Elena Rodriguez', avatarUrl: 'https://picsum.photos/seed/elena/100/100', department: 'Sales', team: 'Alpha', title: 'Sales Lead' },
-  { id: 'emp_002', name: 'Marcus Chen', avatarUrl: 'https://picsum.photos/seed/marcus/100/100', department: 'Marketing', team: 'Bravo', title: 'Marketing Specialist' },
-  { id: 'emp_003', name: 'Aisha Khan', avatarUrl: 'https://picsum.photos/seed/aisha/100/100', department: 'Sales', team: 'Alpha', title: 'Account Executive' },
-  { id: 'emp_004', name: 'David Miller', avatarUrl: 'https://picsum.photos/seed/david/100/100', department: 'Operations', team: 'Charlie', title: 'Operations Manager' },
-  { id: 'emp_005', name: 'Sophia Lee', avatarUrl: 'https://picsum.photos/seed/sophia/100/100', department: 'Sales', team: 'Bravo', title: 'Sales Associate' },
-];
-// --- End Mock Employees ---
-
+// Example: Fetch employee performance data from backend
 export const fetchEmployeePerformanceData = async (): Promise<EmployeePerformanceData[]> => {
-  console.warn('Simulating API call: fetchEmployeePerformanceData. Returning MOCK data for demonstration.');
-  // This is a temporary re-introduction of mock data to demonstrate the "Star of the Month" feature.
-  // In a real application, this data would come from a backend API.
-  
-  const performanceData: EmployeePerformanceData[] = mockEmployees.map((emp, index) => {
-    const isPerformer = emp.id === 'emp_001'; // Elena will be Performer of the Week
-    const isStarCandidate = emp.department === 'Sales'; // Only sales people for Star of the Month for this mock
+  try {
+    const response = await apiService.get<EmployeePerformanceData[]>(`/performance/employees`);
+    const rawData = response.data?.data || response.data;
 
-    let monthlyTargetAchievedPerc = 0;
-    let monthlyNetSalesVal = 0;
-
-    if (isStarCandidate) {
-        monthlyTargetAchievedPerc = Math.floor(80 + Math.random() * 50); // 80% to 130%
-        monthlyNetSalesVal = Math.floor(30000 + Math.random() * 40000); // $30k to $70k
-    }
-    
-    // Specific setup for Elena (emp_001)
-    if (emp.id === 'emp_001') { // Elena
-        monthlyTargetAchievedPerc = 115; // Achieved target
-        monthlyNetSalesVal = 65000; // High sales
-    }
-    // Specific setup for Aisha (emp_003)
-    if (emp.id === 'emp_003') { // Aisha
-        monthlyTargetAchievedPerc = 105; // Achieved target
-        monthlyNetSalesVal = 70000; // Highest sales, to become Star of the Month
-    }
-     // Specific setup for Sophia (emp_005)
-    if (emp.id === 'emp_005') { // Sophia
-        monthlyTargetAchievedPerc = 95; // Did not achieve target
-        monthlyNetSalesVal = 68000; // High sales but target not met
-    }
-
-
-    return {
-      employee: emp,
-      target: Math.floor(10000 + Math.random() * 5000), // Weekly target
-      targetAchievedPercentage: Math.floor(70 + Math.random() * 60), // 70% to 130%
-      totalScore: isPerformer ? 10 : Math.floor(6 + Math.random() * 4), // Random score, Elena gets 10
-      isPerformerOfTheWeek: isPerformer,
-      monthlyTargetValue: isStarCandidate ? 50000 : undefined,
-      monthlyTargetAchievedPercentage: isStarCandidate ? monthlyTargetAchievedPerc : undefined,
-      monthlyNetSales: isStarCandidate ? monthlyNetSalesVal : undefined,
-    };
-  });
-
-  return Promise.resolve(performanceData);
-};
-
-
-export const fetchWeeklyChartData = async (): Promise<WeeklyChartDataPoint[]> => {
-  console.warn('Simulating API call: fetchWeeklyChartData. Returning empty array.');
-  return Promise.resolve([]);
-};
-
-export const fetchOverallPerformanceData = async (): Promise<OverallPerformanceDataItem[]> => {
-  console.warn('Simulating API call: fetchOverallPerformanceData. Returning empty array.');
-  return Promise.resolve([]);
-};
-
-export const fetchAllUsersForSelection = async (): Promise<Pick<UserProfile, 'id' | 'displayName' | 'team' | 'role'>[]> => {
-  console.log('Simulating API: Fetching all users for goal assignment selection.');
-  await new Promise(resolve => setTimeout(resolve, 250));
-  return Promise.resolve(MOCK_ALL_EMPLOYEES_FOR_GOALS);
-};
-
-export const fetchEmployeeGoals = async (employeeId: string): Promise<EmployeeGoal[]> => {
-  console.log(`Simulating API call: fetchEmployeeGoals for employee ${employeeId}.`);
-  if (!employeeId) {
-    console.warn('Cannot fetch goals without an employee ID.');
-    return Promise.resolve([]);
+    // Use backend-calculated scores and metrics directly
+    return (rawData || []).map((item: any) => ({
+      ...item,
+      metrics: item.metrics,
+      totalScore: item.totalScore ?? (item.metrics?.total_score ?? 0)
+    }));
+  } catch (error) {
+    console.error('Error fetching employee performance data:', error);
+    throw new Error('Failed to fetch employee performance data. Please try again later.');
   }
-  await new Promise(resolve => setTimeout(resolve, 300)); // Simulate delay
-  const userGoals = activeGoals.filter(goal => goal.assignedToEmployeeId === employeeId);
-  return Promise.resolve(userGoals);
 };
 
+// Example: Fetch weekly chart data from backend
+export const fetchWeeklyChartData = async (): Promise<WeeklyChartDataPoint[]> => {
+  const response = await apiService.get<WeeklyChartDataPoint[]>(`/performance/weekly-chart`);
+  return response.data?.data || response.data;
+};
+
+// Example: Fetch overall performance data from backend
+export const fetchOverallPerformanceData = async (): Promise<OverallPerformanceDataItem[]> => {
+  const response = await apiService.get<OverallPerformanceDataItem[]>(`/performance/overall`);
+  return response.data?.data || response.data;
+};
+
+// Example: Fetch all users for selection from backend
+export const fetchAllUsersForSelection = async (): Promise<Pick<UserProfile, 'id' | 'displayName' | 'team' | 'role'>[]> => {
+  const response = await apiService.get<Pick<UserProfile, 'id' | 'displayName' | 'team' | 'role'>[]>(`/users`);
+  return response.data?.data || response.data;
+};
+
+// Example: Fetch employee goals from backend
+export const fetchEmployeeGoals = async (employeeId: string): Promise<EmployeeGoal[]> => {
+  const response = await apiService.get<EmployeeGoal[]>(`/goals/employee/${employeeId}`);
+  return response.data?.data || response.data;
+};
+
+// Example: Add employee goal via backend
 export const addEmployeeGoalService = async (
   goalData: Omit<EmployeeGoal, 'id' | 'status' | 'currentValue'>
 ): Promise<EmployeeGoal> => {
-  console.log('Simulating API: Adding new employee goal', goalData);
-  await new Promise(resolve => setTimeout(resolve, 200));
-  const newGoal: EmployeeGoal = {
-    ...goalData,
-    id: `goal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    currentValue: 0,
-    status: 'Not Started' as GoalStatus,
-  };
-  activeGoals.unshift(newGoal);
-  return newGoal;
+  const response = await apiService.post<EmployeeGoal>(`/goals`, goalData);
+  return response.data?.data || response.data;
 };
 
+// Update employee goal (for achievement updates)
+export const updateEmployeeGoalService = async (
+  goalId: number | string,
+  updateData: Partial<EmployeeGoal>
+): Promise<EmployeeGoal> => {
+  const response = await apiService.put<EmployeeGoal>(`/goals/${goalId}`, updateData);
+  return response.data?.data || response.data;
+};
+
+// Service to mark a goal as achieved (status: 'Completed')
+export const markGoalAsAchievedService = async (goalId: string): Promise<void> => {
+  await apiService.put(`/goals/${goalId}`, { status: 'Completed' });
+};
 
 // --- Admin Panel Specific API Calls ---
 
 export const fetchBranches = async (): Promise<Branch[]> => {
-  console.warn('Simulating API call: fetchBranches. Returning empty array.');
-  return Promise.resolve([]);
+  // Real API call to backend
+  const response = await apiService.get<Branch[]>(`/branches`);
+  // Accept both array and { data: array } formats
+  const branches = Array.isArray(response.data) ? response.data : (response.data?.data || response.data);
+  if (Array.isArray(branches)) {
+    return branches.map((branch: any) => ({
+      id: branch.id,
+      name: branch.name,
+      location: branch.location || 'N/A',
+      employeeCount: branch.employeeCount || 0
+    }));
+  }
+  throw new Error('Failed to fetch branches');
 };
 
 export const addBranch = async (branchData: Omit<Branch, 'id'>): Promise<Branch> => {
-  console.warn('Simulating API call: addBranch. Simulating success.', branchData);
-  const newBranch: Branch = {
-    id: `branch_${Date.now()}`,
-    ...branchData,
-  };
-  return Promise.resolve(newBranch);
+  // Real API call to backend
+  const response = await apiService.post<Branch>(`/branches`, branchData);
+  // Accept both object and { data: object } formats
+  const branch = response.data?.data || response.data;
+  if (branch && branch.id) {
+    return {
+      id: branch.id,
+      name: branch.name,
+      location: branch.location || 'N/A',
+      employeeCount: branch.employeeCount || 0
+    };
+  }
+  throw new Error('Failed to add branch');
 };
 
 export const fetchAdminUsers = async (): Promise<AdminPanelUser[]> => {
-  console.warn('Simulating API call: fetchAdminUsers. Returning MOCK_ALL_EMPLOYEES_FOR_GOALS.');
-  // For AdminPanel, we can reuse MOCK_ALL_EMPLOYEES_FOR_GOALS format if it's compatible
-  // Assuming AdminPanelUser is compatible with Pick<UserProfile, 'id' | 'name' -> 'displayName' | 'email' | 'role'>
-  // If not, this needs a separate mock or transformation
-  const adminUsers: AdminPanelUser[] = MOCK_ALL_EMPLOYEES_FOR_GOALS.map(u => ({
-    id: u.id,
-    name: u.displayName,
-    email: `${u.displayName.toLowerCase().replace(/\s+/g, '.')}@example.com`, // Mock email
-    role: u.role,
+  // Real API call to backend
+  const response = await apiService.get<AdminPanelUser[]>(`/users`);
+  // If backend returns array directly
+  const users = Array.isArray(response.data) ? response.data : (response.data.data || []);
+  return users.map((user: any) => ({
+    id: user.id,
+    name: user.displayName || user.name || '',
+    email: user.email,
+    role: user.role,
+    branchId: user.branchId,
+    teamId: user.teamId,
+    // Add more fields as needed
   }));
-  return Promise.resolve(adminUsers);
 };
 
 export const addAdminUser = async (userData: Omit<AdminPanelUser, 'id'>): Promise<AdminPanelUser> => {
-  console.warn('Simulating API call: addAdminUser. Simulating success.', userData);
-  const newUser: AdminPanelUser = {
-    id: `user_${Date.now()}`,
-    ...userData,
-  };
-  // Also add to MOCK_ALL_EMPLOYEES_FOR_GOALS for consistency if this user might get goals
-  MOCK_ALL_EMPLOYEES_FOR_GOALS.push({
-    id: newUser.id,
-    displayName: newUser.name,
-    team: 'Unassigned', // Default team, admin might assign later
-    role: newUser.role,
-  });
-  return Promise.resolve(newUser);
+  // Real API call to backend
+  const response = await apiService.post<AdminPanelUser>(`/users`, userData);
+  const user = response.data?.data || response.data;
+  if (user && user.id) {
+    return user;
+  }
+  throw new Error('Failed to add user');
 };
 
 export const updateUserRole = async (userId: string, newRole: UserRole): Promise<AdminPanelUser> => {
   console.warn(`Simulating API call: updateUserRole for user ${userId} to ${newRole}. Simulating success.`);
-  const userToUpdate = MOCK_ALL_EMPLOYEES_FOR_GOALS.find(u => u.id === userId);
-  if (userToUpdate) {
-    userToUpdate.role = newRole;
-  }
   return Promise.resolve({
     id: userId,
-    name: userToUpdate?.displayName || 'Updated User (Simulated)', 
+    name: `Updated User (Simulated)`, 
     email: 'updated.user@example.com', 
     role: newRole,
   });
 };
 
+export const updateUser = async (userId: string, userData: Partial<AdminPanelUser>): Promise<AdminPanelUser> => {
+  const response = await apiService.put<AdminPanelUser>(`/users/${userId}`, userData);
+  return response.data?.data || response.data;
+};
 
 export const fetchAdminTeams = async (): Promise<AdminPanelTeam[]> => {
-  console.warn('Simulating API call: fetchAdminTeams. Returning empty array.');
-  return Promise.resolve([]);
+  // Real API call to backend
+  const response = await apiService.get<AdminPanelTeam[]>(`/teams`);
+  // If backend returns array directly
+  const teams = Array.isArray(response.data) ? response.data : (response.data.data || []);
+  return teams.map((team: any) => ({
+    id: String(team.id),
+    teamName: team.name || '', // Always set for UI compatibility
+    description: team.description || '',
+    branchId: team.branchId ? String(team.branchId) : '',
+    assignedBranchId: team.branchId ? String(team.branchId) : '',
+  }));
 };
 
-export const addAdminTeam = async (teamData: Omit<AdminPanelTeam, 'id'>): Promise<AdminPanelTeam> => {
-  console.warn('Simulating API call: addAdminTeam. Simulating success.', teamData);
-  const newTeam: AdminPanelTeam = {
-    id: `team_${Date.now()}`,
-    ...teamData,
-  };
-  return Promise.resolve(newTeam);
-};
-
-// --- Notification Service Functions (Simulated) ---
-
-export const fetchNotifications = async (userId: string): Promise<Notification[]> => {
-  console.log(`Simulating API: Fetching notifications for user ${userId}`);
-  await new Promise(resolve => setTimeout(resolve, 200)); // Simulate delay
-  return activeNotifications
-    .filter(n => n.userId === userId)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-};
-
-export const addNotificationService = async (
-  notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>
-): Promise<Notification> => {
-  console.log('Simulating API: Adding notification', notificationData);
-  await new Promise(resolve => setTimeout(resolve, 100));
-  const newNotification: Notification = {
-    ...notificationData,
-    id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    timestamp: new Date().toISOString(),
-    isRead: false,
-  };
-  activeNotifications.unshift(newNotification); // Add to the beginning for newest first
-  return newNotification;
-};
-
-export const markNotificationAsReadService = async (notificationId: string): Promise<boolean> => {
-  console.log(`Simulating API: Marking notification ${notificationId} as read`);
-  await new Promise(resolve => setTimeout(resolve, 50));
-  const index = activeNotifications.findIndex(n => n.id === notificationId);
-  if (index > -1) {
-    activeNotifications[index].isRead = true;
-    return true;
-  }
-  return false;
-};
-
-export const markAllNotificationsAsReadService = async (userId: string): Promise<boolean> => {
-  console.log(`Simulating API: Marking all notifications for user ${userId} as read`);
-  await new Promise(resolve => setTimeout(resolve, 100));
-  activeNotifications.forEach(n => {
-    if (n.userId === userId) {
-      n.isRead = true;
-    }
+export const addAdminTeam = async (teamData: { name: string; description: string; branchId: string }): Promise<AdminPanelTeam> => {
+  // Real API call to backend
+  const response = await apiService.post(`/teams`, {
+    name: teamData.name,
+    description: teamData.description,
+    branchId: teamData.branchId
   });
-  return true;
+  // Defensive: ensure response shape is correct
+  const team: any = response.data?.data || response.data;
+  if (team && team.id) {
+    return {
+      id: String(team.id),
+      description: team.description || '',
+      assignedBranchId: team.branchId ? String(team.branchId) : '',
+      teamName: team.name || '',
+    };
+  }
+  throw new Error('Failed to add team');
 };
 
-export const clearNotificationService = async (notificationId: string): Promise<boolean> => {
-  console.log(`Simulating API: Clearing notification ${notificationId}`);
-  await new Promise(resolve => setTimeout(resolve, 50));
-  const initialLength = activeNotifications.length;
-  activeNotifications = activeNotifications.filter(n => n.id !== notificationId);
-  return activeNotifications.length < initialLength;
+export const assignUserToTeam = async (userId: string, teamId: string): Promise<{ message: string }> => {
+  console.log('[assignUserToTeam] Request:', { userId, teamId });
+  try {
+    const response = await apiService.post(`/user-teams/assign`, { userId, teamId });
+    console.log('[assignUserToTeam] Response:', response);
+    const msg = response.data?.message || 'User assigned to team';
+    return { message: msg };
+  } catch (err) {
+    console.error('[assignUserToTeam] Error:', err);
+    throw err;
+  }
 };
 
-export const clearAllNotificationsService = async (userId: string): Promise<boolean> => {
-  console.log(`Simulating API: Clearing all notifications for user ${userId}`);
-  await new Promise(resolve => setTimeout(resolve, 100));
-  const initialLength = activeNotifications.length;
-  activeNotifications = activeNotifications.filter(n => n.userId !== userId);
-  return activeNotifications.length < initialLength;
+export const assignUserToTeams = async (userId: string, teamIds: string[]): Promise<{ message: string }> => {
+  const response = await apiService.post(`/user-teams/assign`, { userId, teamIds });
+  return { message: response.data?.message || 'Teams assigned' };
 };
+
+export const removeUserFromTeam = async (userId: string, teamId: string): Promise<{ message: string }> => {
+  const response = await apiService.post(`/user-teams/remove`, { userId, teamId });
+  const msg = response.data?.message || 'User removed from team';
+  return { message: msg };
+};
+
+export const fetchAllUserTeamAssignments = async (): Promise<Array<{ userId: string; userName: string; teamId: string; teamName: string }>> => {
+  const response = await apiService.get('/user-teams/assignments');
+  const data = Array.isArray(response.data)
+    ? response.data
+    : response.data.data;
+  return data as Array<{ userId: string; userName: string; teamId: string; teamName: string }>;
+
+};
+
+export const fetchUsersByBranch = async (branchId: string): Promise<AdminPanelUser[]> => {
+  const response = await apiService.get<AdminPanelUser[]>(`/user-teams/branch/${branchId}`);
+  return Array.isArray(response.data) ? response.data : (response.data.data || []);
+};
+
+export const deleteUser = async (userId: string): Promise<void> => {
+  await apiService.delete(`/users/${userId}`);
+};
+
+export const deleteBranch = async (branchId: string): Promise<void> => {
+  await apiService.delete(`/branches/${branchId}`);
+};
+
+// Minimal UserProfile type for local use
+interface UserProfile {
+  id: string;
+  displayName: string;
+  team: string;
+  role: UserRole;
+  title?: string;
+  // Add more fields as needed
+}

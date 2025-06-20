@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { EmployeePerformanceData } from '../../types';
 import { StarIcon } from './icons/Icons';
+import { Link } from 'react-router-dom';
 
 interface EmployeeTableProps {
   data: EmployeePerformanceData[];
@@ -9,7 +9,30 @@ interface EmployeeTableProps {
 }
 
 const EmployeeTable: React.FC<EmployeeTableProps> = ({ data, highlightPerformers = true }) => {
-  const tableHeaders = ['Employee', 'Title', 'Department', 'Team', 'Target Sales', 'Achievement (%)', 'Score'];
+  const tableHeaders = [
+    { label: 'Employee', tooltip: 'Employee name and avatar' },
+    { label: 'Title', tooltip: 'Job title' },
+    { label: 'Department', tooltip: 'Department' },
+    { label: 'Team', tooltip: 'Team' },
+    { label: 'Target Sales', tooltip: 'Weekly sales target' },
+    { label: 'Achievement (%)', tooltip: 'Percent of target achieved' },
+    { label: 'Sales Score', tooltip: 'Score for sales target achievement' },
+    { label: 'Cost Score', tooltip: 'Score for cost efficiency' },
+    { label: 'AOV Score', tooltip: 'Score for average order value' },
+    { label: 'Total Score', tooltip: 'Total KPI score' },
+  ];
+
+  // Helper: Only show scores if all required achievement fields are filled
+  const isAchievementComplete = (metrics: any, team: string) => {
+    if (!metrics) return false;
+    const teamName = team || '';
+    const requiredFields = teamName === 'Sales' ? ['weekly_sales', 'weekly_spend', 'aov']
+      : teamName === 'Ads' ? ['weekly_sales', 'weekly_acos_percent', 'aov']
+      : teamName === 'Website Ads' ? ['weekly_sales', 'weekly_roas', 'aov']
+      : teamName === 'Portfolio Holders' ? ['weekly_sales', 'this_week_sales', 'conversion_rate']
+      : [];
+    return requiredFields.every(f => metrics[f] !== undefined && metrics[f] !== '' && metrics[f] !== null);
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg overflow-x-auto">
@@ -18,8 +41,8 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ data, highlightPerformers
         <thead>
           <tr>
             {tableHeaders.map((header) => (
-              <th key={header} className="border-b border-red-200 dark:border-gray-700 p-4 text-base font-semibold text-gray-600 dark:text-gray-300 bg-red-50 dark:bg-red-900/30">
-                {header}
+              <th key={header.label} title={header.tooltip} className="border-b border-red-200 dark:border-gray-700 p-4 text-base font-semibold text-gray-600 dark:text-gray-300 bg-red-50 dark:bg-red-900/30">
+                {header.label}
               </th>
             ))}
           </tr>
@@ -42,17 +65,20 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ data, highlightPerformers
                 <td className="p-4 border-b border-red-100 dark:border-gray-700">
                   <div className="flex items-center">
                     <img 
-                        src={item.employee.avatarUrl} 
-                        alt={`${item.employee.name}'s avatar`} 
-                        className="w-10 h-10 rounded-full mr-3 object-cover" 
+                      src={item.employee.id ? `/api/users/${item.employee.id}/avatar` : undefined} 
+                      alt={`${item.employee.name}'s avatar`} 
+                      className="w-10 h-10 rounded-full mr-3 object-cover" 
                     />
-                    <span className="font-medium text-gray-800 dark:text-gray-100">{item.employee.name}</span>
+                    <Link to={`/profile/${item.employee.id}`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                      {item.employee.name}
+                    </Link>
                     {highlightPerformers && item.isPerformerOfTheWeek && item.totalScore === 10 && (
                       <StarIcon className="w-5 h-5 text-yellow-500 dark:text-yellow-400 ml-2" title="Performer of the Week" />
                     )}
                   </div>
                 </td>
-                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">{item.employee.title}</td>
+                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">{item.employee.title}
+                </td>
                 <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">{item.employee.department}</td>
                 <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">{item.employee.team}</td>
                 <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">${item.target.toLocaleString()}</td>
@@ -72,7 +98,19 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ data, highlightPerformers
                     </div>
                   </div>
                 </td>
-                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100">{item.totalScore}/10</td>
+                {/* New columns for scores from metrics */}
+                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {isAchievementComplete(item.metrics, item.metrics?.team || '') ? item.metrics?.sales_score : '-'}
+                </td>
+                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {isAchievementComplete(item.metrics, item.metrics?.team || '') ? item.metrics?.cost_score : '-'}
+                </td>
+                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {isAchievementComplete(item.metrics, item.metrics?.team || '') ? item.metrics?.aov_score : '-'}
+                </td>
+                <td className="p-4 border-b border-red-100 dark:border-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {isAchievementComplete(item.metrics, item.metrics?.team || '') ? item.metrics?.total_score : '-'}
+                </td>
               </tr>
             ))
           )}

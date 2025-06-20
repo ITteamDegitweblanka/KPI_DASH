@@ -11,6 +11,7 @@ import {
   clearNotificationService,
   clearAllNotificationsService
 } from './services/notificationService';
+import { EmployeePerformanceData } from '../types';
 
 // Lazy load components for better performance
 const Sidebar = lazy(() => import('./components/Sidebar'));
@@ -98,10 +99,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const location = useLocation();
 
   if (isLoading) {
+    // Show a loading spinner or nothing while auth state is being determined
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
   if (!isAuthenticated) {
+    // Only redirect if we are sure the user is not authenticated
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -116,7 +119,7 @@ const AppContent: React.FC = () => {
   
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [teamKPI, setTeamKPI] = useState<TeamKPIExtended | null>(null);
-  const [employeePerformanceData, setEmployeePerformanceData] = useState<any[]>([]); // TODO: Replace 'any' with proper type
+  const [employeePerformanceData, setEmployeePerformanceData] = useState<EmployeePerformanceData[]>([]);
   // These states are now managed within the DashboardPage component
   const [, setIsLoading] = useState<boolean>(false);
   const [, setError] = useState<string | null>(null);
@@ -126,7 +129,36 @@ const AppContent: React.FC = () => {
   // Using user directly from useAuth hook
   
   // Handle navigation
-  const handleNavItemSelect = useCallback((path: string) => {
+  const handleNavItemSelect = useCallback((itemId: string) => {
+    // Map sidebar item IDs to routes
+    let path = '/';
+    switch (itemId) {
+      case 'dashboard':
+        path = '/dashboard';
+        break;
+      case 'performance':
+        path = '/performance';
+        break;
+      case 'employeeGoals':
+        path = '/goals';
+        break;
+      case 'profile':
+        path = '/profile';
+        break;
+      case 'settings':
+        path = '/settings';
+        break;
+      case 'admin-panel':
+        path = '/admin';
+        break;
+      case 'logout':
+        // Handle logout: clear auth and redirect to login
+        window.localStorage.clear(); // Optional: clear all localStorage
+        window.location.href = '/login';
+        return;
+      default:
+        path = '/';
+    }
     navigate(path);
   }, [navigate]);
   
@@ -180,16 +212,8 @@ const AppContent: React.FC = () => {
           setTeamKPI(transformedData);
         }
       } catch (err: any) {
-        console.warn('Team KPI endpoint not available, using mock data:', err.message);
-        // Provide mock data when the endpoint is not available
-        const mockData: TeamKPIExtended = {
-          teamId: 'mock-team-1',
-          teamName: 'Mock Team',
-          overallScore: 0,
-          metrics: [],
-          teamMembers: []
-        };
-        setTeamKPI(mockData);
+        console.error('Team KPI endpoint not available:', err.message);
+        // Optionally, setTeamKPI(null) or show an error UI
       } finally {
         setIsLoading(false);
       }
@@ -205,11 +229,11 @@ const AppContent: React.FC = () => {
       
       try {
         // TODO: Replace with actual API call to fetch employee performance data
-        // For now, using mock data
-        const mockData: any[] = []; // TODO: Replace 'any' with proper type
-        setEmployeePerformanceData(mockData);
+        const data = await import('./services/apiService').then(m => m.fetchEmployeePerformanceData());
+        setEmployeePerformanceData(data);
       } catch (err) {
         console.error('Failed to load employee performance data:', err);
+        // Optionally, setEmployeePerformanceData([]) or show an error UI
       }
     };
 
@@ -223,16 +247,18 @@ const AppContent: React.FC = () => {
     if (!isAuthLoading && !isAuthenticated && location.pathname !== '/login') {
       // Store the current path to redirect back after login
       const redirectPath = location.pathname !== '/' ? location.pathname + location.search : '/';
+      localStorage.setItem('postLoginRedirect', redirectPath);
       navigate('/login', { 
         state: { from: redirectPath },
         replace: true 
       });
     }
-  }, [isAuthLoading, isAuthenticated, location, navigate]);
+    // Only depend on isAuthLoading, isAuthenticated, location.pathname, and navigate
+  }, [isAuthLoading, isAuthenticated, location.pathname, navigate]);
 
   const handleMarkNotificationRead = async (notificationId: string) => {
     if (!user) return;
-    await markNotificationAsReadService(notificationId, user.id);
+    await markNotificationAsReadService(notificationId); // Only pass notificationId
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
     );
@@ -240,13 +266,13 @@ const AppContent: React.FC = () => {
 
   const handleMarkAllNotificationsRead = async () => {
     if (!user) return;
-    await markAllNotificationsAsReadService(user.id);
+    await markAllNotificationsAsReadService(user.id); // Only pass user.id
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
 
   const handleClearNotification = async (notificationId: string) => {
     if (!user) return;
-    await clearNotificationService(notificationId, user.id);
+    await clearNotificationService(notificationId); // Only pass notificationId
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   };
 
@@ -279,7 +305,7 @@ const AppContent: React.FC = () => {
             currentUser={ensureUserProfile(user)}
           />
         )}
-        <div className="flex-1 flex flex-col h-0">
+        <div className="flex-1 flex flex-col h-0 ml-72">
           {/* Fixed Header */}
           {isAuthenticated && location.pathname !== '/login' && (
             <header className="bg-white dark:bg-gray-800 shadow-sm">
@@ -287,27 +313,6 @@ const AppContent: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-4">
                     <h1 className="text-xl font-semibold text-gray-800 dark:text-white">{APP_TITLE}</h1>
-                    {window.location.pathname === '/dashboard' && (
-                      <div className="relative">
-                        <select 
-                          value={selectedTeam} 
-                          onChange={handleTeamChange}
-                          className="appearance-none bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 pr-8 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="all">All Teams</option>
-                          {teamKPI?.teamMembers?.map((member: any) => (
-                            <option key={member.id} value={member.team}>
-                              {member.team}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="relative">
@@ -383,11 +388,11 @@ const AppContent: React.FC = () => {
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <DashboardPage 
-                    employeePerformanceData={[]} // You'll need to fetch this data
+                    employeePerformanceData={employeePerformanceData}
                     selectedTeam={selectedTeam}
                     onTeamChange={handleTeamChange}
                     uniqueTeamsForFilter={Array.from(new Set(teamKPI?.teamMembers?.map(m => m.team) || []))}
-                    addAppNotification={async (targetUserId, details) => {
+                    addAppNotification={async (targetUserId: string, details: any) => {
                       // Implement notification logic here
                       console.log('Adding notification:', { targetUserId, details });
                     }}
@@ -397,14 +402,14 @@ const AppContent: React.FC = () => {
               } />
               <Route path="/performance" element={
                 <ProtectedRoute>
-                  <PerformancePage employeePerformanceData={employeePerformanceData} />
+                  <PerformancePage />
                 </ProtectedRoute>
               } />
               <Route path="/goals" element={
                 <ProtectedRoute>
                   <EmployeeGoalsPage 
                     currentUser={ensureUserProfile(user)}
-                    addAppNotification={async (targetUserId, details) => {
+                    addAppNotification={async (targetUserId: string, details: any) => {
                       // Implement notification logic here
                       console.log('Adding notification:', { targetUserId, details });
                     }}
@@ -415,7 +420,7 @@ const AppContent: React.FC = () => {
                 <ProtectedRoute>
                   <ProfilePage 
                     currentUser={ensureUserProfile(user)}
-                    addAppNotification={async (targetUserId, details) => {
+                    addAppNotification={async (targetUserId: string, details: any) => {
                       // Implement notification logic here
                       console.log('Adding notification:', { targetUserId, details });
                     }}
@@ -424,17 +429,18 @@ const AppContent: React.FC = () => {
               } />
               <Route path="/admin" element={
                 <ProtectedRoute>
-                  {user?.role === 'Admin' || user?.role === 'Super Admin' ? (
-                    <AdminPanelPage 
-                      currentUser={ensureUserProfile(user)}
-                      addAppNotification={async (targetUserId, details) => {
-                        // Implement notification logic here
-                        console.log('Adding notification:', { targetUserId, details });
-                      }}
-                    />
-                  ) : (
-                    <Navigate to="/dashboard" replace />
-                  )}
+                  {user
+                    ? (["Super Admin", "Admin", "Leader", "Sub-Leader"].includes(user.role)
+                        ? <AdminPanelPage 
+                            currentUser={ensureUserProfile(user)}
+                            addAppNotification={async (targetUserId: string, details: any) => {
+                              // Implement notification logic here
+                              console.log('Adding notification:', { targetUserId, details });
+                            }}
+                          />
+                        : <Navigate to="/dashboard" replace />)
+                    : null // or a loading spinner
+                  }
                 </ProtectedRoute>
               } />
             </Routes>

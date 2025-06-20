@@ -15,6 +15,8 @@ export interface TeamMember {
   position: string;
   department: string;
   avatar?: string;
+  isPerformerOfTheWeek?: boolean;
+  isStarOfTheMonth?: boolean;
 }
 
 export interface TeamKPI {

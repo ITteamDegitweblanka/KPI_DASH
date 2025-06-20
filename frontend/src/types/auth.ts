@@ -51,6 +51,7 @@ export interface UserProfile {
     name: string;
     proficiency: 'Basic' | 'Intermediate' | 'Fluent' | 'Native';
   }>;
+  avatarRefresh?: number;
 }
 
 export interface LoginCredentials {

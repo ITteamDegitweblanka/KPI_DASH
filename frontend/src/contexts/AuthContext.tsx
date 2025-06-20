@@ -8,7 +8,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: { email: string; password: string }) => Promise<ApiResponse<{
     user: User;
-    accessToken: string;
+    accessToken?: string;
+    token?: string;
     refreshToken: string;
     expiresIn: number;
   }>>;
@@ -77,15 +78,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
       const response = await authService.login(credentials);
-      
-      // The response from authService.login is already typed as ApiResponse<AuthResponseData>
       if (response?.data) {
-        const { user: userData, accessToken, refreshToken, expiresIn } = response.data;
-        
-        // Store tokens and user data
+        // Support both { user, token } and { user, accessToken } response shapes
+        const userData = response.data.user;
+        // Prefer accessToken, but allow token for backward compatibility
+        const accessToken = response.data.accessToken || (response.data as any).token || '';
+        const refreshToken = response.data.refreshToken;
+        const expiresIn = response.data.expiresIn;
         authService.setAuthTokens(accessToken, refreshToken, expiresIn);
-        
-        // Map backend 'name' field to 'displayName' in our frontend
         const displayName = (userData as any).name || userData.displayName || userData.email.split('@')[0];
         setUser({
           id: userData.id,
@@ -100,8 +100,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           createdAt: userData.createdAt,
           updatedAt: userData.updatedAt
         });
+        // Add debug log
+        console.log('[AuthContext] User set after login:', userData);
       }
-      
       return response;
     } catch (error) {
       console.error('Login failed:', error);
@@ -120,12 +121,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user?.id,
+        isAuthenticated: !!user && (typeof user.id === 'string' ? user.id.length > 0 : !!user.id),
         isLoading,
         login,
         logout,
       }}
     >
+      {/* Debug log for user and isAuthenticated */}
+      {(() => { console.log('[AuthContext.Provider] user:', user, 'isAuthenticated:', !!user && (typeof user.id === 'string' ? user.id.length > 0 : !!user.id)); return null; })()}
       {!isLoading && children}
     </AuthContext.Provider>
   );

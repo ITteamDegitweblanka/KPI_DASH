@@ -15,7 +15,7 @@ export const SIDEBAR_TOP_ITEMS: SidebarNavItem[] = [
 ];
 
 export const SIDEBAR_BOTTOM_ITEMS: SidebarNavItem[] = [
-  { id: 'admin-panel', name: 'Admin Panel', icon: <AdjustmentsHorizontalIcon />, href: '#admin-panel', roles: ['Super Admin', 'Admin'] },
+  { id: 'admin-panel', name: 'Admin Panel', icon: <AdjustmentsHorizontalIcon />, href: '#admin-panel', roles: ['Super Admin', 'Admin', 'Leader', 'Sub-Leader'] },
   { id: 'settings', name: 'Settings', icon: <CogIcon />, href: '#settings' },
   { id: 'logout', name: 'Log Out', icon: <ArrowLeftOnRectangleIcon />, href: '#logout' },
 ];
@@ -78,14 +78,37 @@ export const TEAM_GOAL_TEMPLATES: TeamSpecificGoalTemplates = {
     { title: "Sales Trend Performance", unit: "Trend", description: "Demonstrate positive sales trend performance over the period." },
     { title: "Client Conversion Rate", unit: "%", description: "Improve the conversion rate for portfolio clients." }
   ],
-  "Default": [ // Fallback for teams not explicitly defined
-    { title: "Key Project Completion", unit: "tasks", description: "Complete all assigned key project tasks on time." },
-    { title: "Skill Development Hours", unit: "hours", description: "Dedicate target hours to skill development and training." },
-    { title: "Process Improvement Initiatives", unit: "initiatives", description: "Contribute to a target number of process improvement initiatives." }
-  ],
    "Management": [ // Fallback for teams not explicitly defined
     { title: "Team Performance Improvement", unit: "%", description: "Improve overall team performance by a target percentage." },
     { title: "Budget Adherence", unit: "%", description: "Maintain departmental budget adherence within target limits." },
     { title: "Strategic Initiative Completion", unit: "milestones", description: "Complete milestones for key strategic initiatives." }
+  ]
+};
+
+export const TEAM_GOAL_METRICS = {
+  Ads: [
+    "Weekly Target (Sales)", "Weekly Achievement (Sales)",
+    "Weekly Target (Sales Trend %)", "Weekly Achievement (Sales Trend %)",
+    "Weekly Target (Conversion Rate %)", "Weekly Achievement (Conversion Rate %)",
+    "Weekly Target (AOV)", "Weekly Achievement (AOV)",
+    "Sales Achievement %", "Sales Score", "Sales Trend % Score", "Conversion Rate % Score", "AOV Score", "Total Score"
+  ],
+  Sales: [
+    "Weekly Target (Sales)", "Weekly Achievement (Sales)",
+    "Weekly Target (Selling Cost %)", "Weekly Achievement (Selling Cost %)",
+    "Weekly Target (AOV)", "Weekly Achievement (AOV)",
+    "Sales Achievement %", "Sales Score", "Selling Cost % Score", "AOV Score", "Total Score"
+  ],
+  "Website Ads": [
+    "Weekly Target (Sales)", "Weekly Achievement (Sales)",
+    "Weekly Target (ROAS %)", "Weekly Achievement (ROAS %)",
+    "Weekly Target (AOV)", "Weekly Achievement (AOV)",
+    "Sales Achievement %", "Sales Score", "ROAS % Score", "AOV Score", "Total Score"
+  ],
+  "Portfolio Holders": [
+    "Weekly Target (Sales)", "Weekly Achievement (Sales)",
+    "Weekly Target (Sales Trend %)", "Weekly Achievement (Sales Trend %)",
+    "Weekly Target (Conversion Rate %)", "Weekly Achievement (Conversion Rate %)",
+    "Sales Achievement %", "Sales Score", "Sales Trend % Score", "Conversion Rate % Score", "Total Score"
   ]
 };

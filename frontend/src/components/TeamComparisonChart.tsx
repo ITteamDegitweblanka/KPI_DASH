@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { TeamComparisonDataPoint } from '../../types';
@@ -50,7 +49,7 @@ const TeamComparisonChart: React.FC<TeamComparisonChartProps> = ({ data }) => {
             }} 
           />
           <Bar dataKey="score" name="Average Score" barSize={25}>
-            {data.map((entry, index) => (
+            {data.map((_, index) => (
               <Cell key={`cell-${index}`} fill={currentTeamColors[index % currentTeamColors.length]} />
             ))}
           </Bar>

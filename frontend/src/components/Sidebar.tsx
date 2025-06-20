@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavItemClick, uniqueTea
   
   const userDisplayName = currentUser?.displayName || "User";
   const userDisplayTitle = currentUser?.title || currentUser?.role || "Role not set";
-  const userDisplayAvatar = currentUser?.avatarUrl || 'https://picsum.photos/seed/default/100/100';
+  const userDisplayAvatar = currentUser?.id ? `/api/users/${currentUser.id}/avatar` : 'https://picsum.photos/seed/default/100/100';
 
 
   return (
@@ -109,7 +109,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavItemClick, uniqueTea
               onKeyPress={(e) => e.key === 'Enter' && onNavItemClick('profile')}
               aria-label={`View ${userDisplayName}'s profile`}
           >
-              <img src={userDisplayAvatar} alt={userDisplayName} className="w-12 h-12 rounded-full mr-4 object-cover" />
+              <img
+                src={userDisplayAvatar}
+                alt="User Avatar"
+                className="w-12 h-12 rounded-full object-cover border-2 border-red-500 dark:border-red-400 shadow-md"
+                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://picsum.photos/seed/default/100/100'; }}
+              />
               <div>
                   <p className="text-base font-semibold text-gray-800 dark:text-gray-100">{userDisplayName}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{userDisplayTitle}</p>

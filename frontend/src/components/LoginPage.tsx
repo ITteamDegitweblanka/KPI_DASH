@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { APP_TITLE } from '../../constants';
-import { UserCircleIcon, ChartBarIcon } from './icons/Icons';
+import { UserCircleIcon, ChartBarIcon, EyeIcon, EyeSlashIcon } from './icons/Icons';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from?.pathname || '/';
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      // Check for redirect path in location.state or localStorage
+      let redirectPath = null;
+      if (window.history.state && window.history.state.usr && window.history.state.usr.from) {
+        redirectPath = window.history.state.usr.from;
+      } else {
+        redirectPath = localStorage.getItem('postLoginRedirect');
+      }
+      if (redirectPath) {
+        localStorage.removeItem('postLoginRedirect');
+        navigate(redirectPath, { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,11 +54,7 @@ const LoginPage: React.FC = () => {
     try {
       console.log('Attempting login...');
       await login({ email, password });
-      console.log('Login successful, redirecting...');
-      
-      // Navigate to the intended page or dashboard
-      navigate(from, { replace: true });
-      
+      // Do NOT navigate here! Let the useEffect handle it.
     } catch (err: any) {
       console.error('Login error:', err);
       
@@ -100,17 +113,28 @@ const LoginPage: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                 Enter your Password
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500 focus:border-red-400 dark:focus:border-red-500 outline-none transition-colors text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
-                aria-label="Password"
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500 focus:border-red-400 dark:focus:border-red-500 outline-none transition-colors text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
+                  aria-label="Password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
             {error && (
               <p className="text-sm text-red-600 dark:text-red-400 text-center" role="alert">
